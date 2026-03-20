@@ -571,31 +571,31 @@ function switchTab(day){
 
 // ─── URL Share ───
 function encodeState(){
-  // Format: pool=1,3,5&d1=4,7,1,2&d2=...&d3=...&d4=...
-  const state={};
+  // Format: p=1.3.5&d1=4.7.1.2&d2=...  (dots instead of commas for clean URLs)
+  const parts=[];
   ['pool','1','2','3','4'].forEach(day=>{
     const z=document.getElementById('drop-'+day);
     if(z){
       const ids=[...z.querySelectorAll('.spot-card-wrapper')].map(c=>c.dataset.id);
       const key = day==='pool'?'p':'d'+day;
-      if(ids.length) state[key]=ids.join(',');
+      if(ids.length) parts.push(key+'='+ids.join('.'));
     }
   });
-  return new URLSearchParams(state).toString();
+  return parts.join('&');
 }
 
 function decodeState(){
-  const params=new URLSearchParams(window.location.hash.slice(1));
-  if(params.toString()==='') return false;
-  const map={p:'pool',d1:'1',d2:'2',d3:'3',d4:'4'};
-  // Reset all to pool first
+  const raw=window.location.hash.slice(1);
+  if(!raw) return false;
+  const keyMap={p:'pool',d1:'1',d2:'2',d3:'3',d4:'4'};
   spots.forEach(s=>assignment[s.id]='pool');
   let found=false;
-  Object.entries(map).forEach(([key,day])=>{
-    const val=params.get(key);
-    if(val){
+  raw.split('&').forEach(part=>{
+    const [key,val]=part.split('=');
+    const day=keyMap[key];
+    if(day && val){
       found=true;
-      const ids=val.split(',').map(Number);
+      const ids=val.split('.').map(Number).filter(n=>!isNaN(n));
       ids.forEach(id=>{ if(assignment.hasOwnProperty(id)) assignment[id]=day; });
       dayOrder[day]=ids;
     }
@@ -605,14 +605,15 @@ function decodeState(){
 
 function shareURL(){
   const hash=encodeState();
-  const url=window.location.pathname+'#'+hash;
+  const base=window.location.origin+window.location.pathname;
+  const fullURL=base+'#'+hash;
   window.location.hash=hash;
-  navigator.clipboard.writeText(window.location.href).then(()=>{
+  navigator.clipboard.writeText(fullURL).then(()=>{
     const btn=document.getElementById('share-btn');
     btn.textContent='✅ 복사완료!';
     setTimeout(()=>{btn.textContent='🔗 일정 URL 복사';},2000);
   }).catch(()=>{
-    prompt('이 URL을 복사하세요:', window.location.href);
+    prompt('이 URL을 복사하세요:', fullURL);
   });
 }
 
