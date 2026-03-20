@@ -586,20 +586,25 @@ function encodeState(){
 
 function decodeState(){
   const raw=window.location.hash.slice(1);
-  if(!raw) return false;
+  if(!raw || raw.length<3) return false;
   const keyMap={p:'pool',d1:'1',d2:'2',d3:'3',d4:'4'};
+  // 전체 초기화 (localStorage 잔여 데이터 제거)
   spots.forEach(s=>assignment[s.id]='pool');
+  ['pool','1','2','3','4'].forEach(d=>{ dayOrder[d]=[]; });
   let found=false;
   raw.split('&').forEach(part=>{
-    const [key,val]=part.split('=');
+    const eq=part.indexOf('=');
+    if(eq<1) return;
+    const key=part.slice(0,eq), val=part.slice(eq+1);
     const day=keyMap[key];
     if(day && val){
       found=true;
-      const ids=val.split('.').map(Number).filter(n=>!isNaN(n));
+      const ids=val.split('.').map(Number).filter(n=>n>0&&!isNaN(n));
       ids.forEach(id=>{ if(assignment.hasOwnProperty(id)) assignment[id]=day; });
       dayOrder[day]=ids;
     }
   });
+  if(found) saveState(); // URL 상태를 localStorage에도 저장
   return found;
 }
 
